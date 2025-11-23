@@ -1,14 +1,17 @@
 import React from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { ToyBrick, Calendar, Users, MailCheck, Menu } from 'lucide-react';
+import { ToyBrick, Calendar, Users, MailCheck, Menu, Image, Settings, Blocks } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useFamilyStore } from '@/hooks/use-family-store';
 const navLinks = [
   { href: '/sessions', label: 'Find Sessions', icon: Calendar },
+  { href: '/idea-buffet', label: 'Idea Buffet', icon: Blocks },
+  { href: '/legacy-wall', label: 'Legacy Wall', icon: Image },
   { href: '/family', label: 'My Family', icon: Users },
   { href: '/approvals', label: 'Approvals', icon: MailCheck },
+  { href: '/admin', label: 'Admin', icon: Settings },
 ];
 export function PageLayout({ children }: { children: React.ReactNode }) {
   const family = useFamilyStore(s => s.family);
@@ -49,12 +52,12 @@ export function PageLayout({ children }: { children: React.ReactNode }) {
                 Community Brickyard
               </span>
             </Link>
-            <nav className="hidden md:flex items-center space-x-1">
+            <nav className="hidden lg:flex items-center space-x-1">
               <NavContent />
             </nav>
             <div className="flex items-center gap-2">
               <ThemeToggle className="relative top-0 right-0" />
-              <div className="md:hidden">
+              <div className="lg:hidden">
                 <Sheet>
                   <SheetTrigger asChild>
                     <Button variant="ghost" size="icon">

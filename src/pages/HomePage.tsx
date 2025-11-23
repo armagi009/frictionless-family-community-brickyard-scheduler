@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { PageLayout } from '@/components/layout/PageLayout';
-import { ArrowRight, ToyBrick, Calendar, Users } from 'lucide-react';
+import { ArrowRight, ToyBrick, Calendar, Users, Image, Settings } from 'lucide-react';
 import { IdeaBuffet } from '@/components/IdeaBuffet';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFamilyStore } from '@/hooks/use-family-store';
@@ -22,14 +22,10 @@ export function HomePage() {
           </p>
           <div className="mt-8 flex justify-center gap-4">
             <Button asChild size="lg" className="bg-[#E53935] hover:bg-[#D32F2F] text-white shadow-primary text-base font-semibold px-8 py-6 rounded-full transition-transform hover:scale-105">
-              <Link to="/sessions">
-                Find a Session <ArrowRight className="w-4 h-4 ml-2" />
-              </Link>
+              <Link to="/sessions">Find a Session <ArrowRight className="w-4 h-4 ml-2" /></Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="text-base font-semibold px-8 py-6 rounded-full transition-transform hover:scale-105">
-              <Link to="/family">
-                View My Family
-              </Link>
+              <Link to="/family">View My Family</Link>
             </Button>
           </div>
         </div>
@@ -61,19 +57,13 @@ export function HomePage() {
                                   <p className="text-sm text-muted-foreground">Age {child.age}</p>
                                 </div>
                               </div>
-                              <Link to="/sessions">
-                                <Button size="sm" variant="ghost">
-                                  Find Sessions <ArrowRight className="w-3 h-3 ml-1" />
-                                </Button>
-                              </Link>
+                              <Link to="/sessions"><Button size="sm" variant="ghost">Find Sessions <ArrowRight className="w-3 h-3 ml-1" /></Button></Link>
                             </div>
                           ))}
                         </div>
                       </CardContent>
                     </Card>
-                  ) : (
-                     <p>Loading family data...</p>
-                  )}
+                  ) : (<p>Loading family data...</p>)}
                 </div>
               </div>
               <div className="bg-background p-8 rounded-2xl shadow-soft">
@@ -92,8 +82,33 @@ export function HomePage() {
             <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
               Our library of pre-built sets for inspiration, play, or deconstruction.
             </p>
+            <Button asChild className="mt-4">
+                <Link to="/idea-buffet">Explore All Sets <ArrowRight className="w-4 h-4 ml-2" /></Link>
+            </Button>
           </div>
           <IdeaBuffet />
+        </div>
+      </div>
+      <div className="bg-muted">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="py-16 md:py-24 lg:py-28">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <Card className="hover:shadow-lg transition-shadow">
+                        <CardHeader><CardTitle className="flex items-center gap-2"><Image /> Legacy Wall</CardTitle></CardHeader>
+                        <CardContent>
+                            <p className="text-muted-foreground mb-4">See what our community has built and get inspired by our latest build challenges.</p>
+                            <Button asChild variant="outline"><Link to="/legacy-wall">Visit the Gallery</Link></Button>
+                        </CardContent>
+                    </Card>
+                    <Card className="hover:shadow-lg transition-shadow">
+                        <CardHeader><CardTitle className="flex items-center gap-2"><Settings /> Admin Dashboard</CardTitle></CardHeader>
+                        <CardContent>
+                            <p className="text-muted-foreground mb-4">Manage club sessions, bookings, and view analytics. (For authorized users only).</p>
+                            <Button asChild variant="outline"><Link to="/admin">Go to Admin</Link></Button>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
         </div>
       </div>
     </PageLayout>

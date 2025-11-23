@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 import { toast } from 'sonner';
 const ALL_TAGS = ['creative free-build', 'vehicles', 'space', 'rockets', 'workshop', 'castles', 'knights', 'adults', 'architecture', 'relax', 'minifigures'];
 export function SessionsPage() {
@@ -20,6 +22,7 @@ export function SessionsPage() {
   const selectedChildId = useFamilyStore(s => s.selectedChildId);
   const selectChild = useFamilyStore(s => s.selectChild);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState('');
   const selectedChild = useMemo(() => {
     return family?.children.find((c: Child) => c.id === selectedChildId);
   }, [family, selectedChildId]);
@@ -32,33 +35,37 @@ export function SessionsPage() {
   const handleTagChange = (tag: string, checked: boolean) => {
     setSelectedTags(prev => {
       const newSet = new Set(prev);
-      if (checked) {
-        newSet.add(tag);
-      } else {
-        newSet.delete(tag);
-      }
+      if (checked) newSet.add(tag);
+      else newSet.delete(tag);
       return newSet;
     });
   };
-  const filteredSessions = useMemo(() => {
-    return sessions.filter(session => {
-      if (selectedChild) {
-        if (session.ageMin > selectedChild.age || session.ageMax < selectedChild.age) {
+  const filteredAndSortedSessions = useMemo(() => {
+    return sessions
+      .filter(session => {
+        if (selectedChild && (session.ageMin > selectedChild.age || session.ageMax < selectedChild.age)) {
           return false;
         }
-      }
-      if (selectedTags.size > 0) {
-        if (!Array.from(selectedTags).every(tag => session.tags.includes(tag))) {
+        if (selectedTags.size > 0 && !Array.from(selectedTags).every(tag => session.tags.includes(tag))) {
           return false;
         }
-      }
-      return true;
-    });
-  }, [sessions, selectedChild, selectedTags]);
+        if (searchTerm && !session.title.toLowerCase().includes(searchTerm.toLowerCase())) {
+          return false;
+        }
+        return true;
+      })
+      .map(session => {
+        let score = 0;
+        if (selectedChild) {
+          score = session.tags.filter(tag => selectedChild.interestTags.includes(tag)).length;
+        }
+        return { ...session, score };
+      })
+      .sort((a, b) => b.score - a.score);
+  }, [sessions, selectedChild, selectedTags, searchTerm]);
   const handleBook = (session: Session) => {
     if (!family) {
       toast.info('Please set up your family profile first.');
-      // Potentially navigate to /family
       return;
     }
     setBookingSession(session);
@@ -83,28 +90,27 @@ export function SessionsPage() {
                   <div>
                     <Label className="font-semibold">Child Profile</Label>
                     <Select value={selectedChildId ?? ''} onValueChange={(val) => selectChild(val)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a child" />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Select a child" /></SelectTrigger>
                       <SelectContent>
                         {family?.children.map((child: Child) => (
-                          <SelectItem key={child.id} value={child.id}>
-                            {child.name} (Age {child.age})
-                          </SelectItem>
+                          <SelectItem key={child.id} value={child.id}>{child.name} (Age {child.age})</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
+                    <Label className="font-semibold">Search by Name</Label>
+                    <div className="relative mt-2">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input placeholder="e.g., Space" className="pl-8" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
                     <Label className="font-semibold">Interest Tags</Label>
-                    <div className="space-y-2 mt-2">
+                    <div className="space-y-2 mt-2 max-h-60 overflow-y-auto pr-2">
                       {ALL_TAGS.map(tag => (
                         <div key={tag} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={tag}
-                            checked={selectedTags.has(tag)}
-                            onCheckedChange={(checked) => handleTagChange(tag, !!checked)}
-                          />
+                          <Checkbox id={tag} checked={selectedTags.has(tag)} onCheckedChange={(checked) => handleTagChange(tag, !!checked)} />
                           <Label htmlFor={tag} className="font-normal capitalize">{tag}</Label>
                         </div>
                       ))}
@@ -117,20 +123,14 @@ export function SessionsPage() {
               {isLoading ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {[...Array(4)].map((_, i) => (
-                    <div key={i} className="space-y-3">
-                      <Skeleton className="h-[125px] w-full rounded-xl" />
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-4/5" />
-                      </div>
-                    </div>
+                    <div key={i} className="space-y-3"><Skeleton className="h-[250px] w-full rounded-xl" /></div>
                   ))}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {filteredSessions.length > 0 ? (
-                    filteredSessions.map(session => (
-                      <SessionCard key={session.id} session={session} onBook={handleBook} />
+                  {filteredAndSortedSessions.length > 0 ? (
+                    filteredAndSortedSessions.map(session => (
+                      <SessionCard key={session.id} session={session} onBook={handleBook} score={session.score} maxScore={selectedChild?.interestTags.length} />
                     ))
                   ) : (
                     <div className="lg:col-span-2 text-center py-16">
@@ -143,11 +143,7 @@ export function SessionsPage() {
           </div>
         </div>
       </div>
-      <BookingModal
-        session={bookingSession}
-        isOpen={!!bookingSession}
-        onClose={() => setBookingSession(null)}
-      />
+      <BookingModal session={bookingSession} isOpen={!!bookingSession} onClose={() => setBookingSession(null)} />
     </PageLayout>
   );
 }

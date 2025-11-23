@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import type { Env } from './core-utils';
 import { SessionEntity, FamilyEntity, BookingEntity, LegoSetEntity } from "./entities";
-import { ok, bad, notFound, isStr } from './core-utils';
-import { generateIcsContent } from '../src/lib/ics';
+import { ok, bad, notFound } from './core-utils';
+import { generateIcsContent } from './ics';
 import type { Booking, Session, Family, Child } from '@shared/types';
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
   // Ensure all data is seeded on first load
@@ -19,6 +19,32 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   app.get('/api/sessions', async (c) => {
     const { items } = await SessionEntity.list(c.env);
     return ok(c, items.sort((a, b) => a.startTs - b.startTs));
+  });
+  app.post('/api/sessions', async (c) => {
+    const body = await c.req.json<Partial<Session>>();
+    if (!body.title || !body.startTs || !body.endTs) {
+        return bad(c, 'Missing required session data');
+    }
+    const newSession: Session = {
+        id: `ses_${crypto.randomUUID()}`,
+        title: body.title,
+        startTs: body.startTs,
+        endTs: body.endTs,
+        ageMin: body.ageMin || 5,
+        ageMax: body.ageMax || 99,
+        tags: body.tags || [],
+        type: body.type || 'free-play',
+        location: body.location || 'Main Build Area',
+        capacity: body.capacity || 20,
+        notes: body.notes || ''
+    };
+    await SessionEntity.create(c.env, newSession);
+    return ok(c, newSession);
+  });
+  // LEGO SETS (Idea Buffet)
+  app.get('/api/sets', async (c) => {
+    const { items } = await LegoSetEntity.list(c.env);
+    return ok(c, items);
   });
   // FAMILIES
   app.get('/api/families/:id', async (c) => {
@@ -85,6 +111,13 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     if (booking.status !== 'pending') return bad(c, 'Booking is not pending approval');
     await bookingEntity.patch({ status: 'confirmed' });
     return ok(c, { ...booking, status: 'confirmed' });
+  });
+  app.delete('/api/bookings/:id', async (c) => {
+    const bookingId = c.req.param('id');
+    // In a real app, you'd check for admin privileges here
+    const deleted = await BookingEntity.delete(c.env, bookingId);
+    if (!deleted) return notFound(c, 'Booking not found');
+    return ok(c, { id: bookingId, deleted: true });
   });
   // .ICS Download
   app.get('/api/bookings/:id/ics', async (c) => {
