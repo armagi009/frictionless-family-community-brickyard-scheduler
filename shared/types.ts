@@ -40,6 +40,8 @@ export interface Booking {
   status: BookingStatus;
   approvalToken: string;
   createdTs: number;
+  /** Optional expiration timestamp for approval tokens (24h from creation). */
+  expiryTs?: number;
   notes?: string;
 }
 export interface LegoSet {

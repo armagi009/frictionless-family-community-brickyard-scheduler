@@ -70,19 +70,19 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   // BOOKINGS
   app.get('/api/bookings', async (c) => {
     const familyId = c.req.query('familyId');
-    if (!familyId) return bad(c, 'familyId is required');
     const { items: allBookings } = await BookingEntity.list(c.env);
-    const familyBookings = allBookings.filter(b => b.familyId === familyId);
-    // Enrich with session and child info
-    const enrichedBookings = await Promise.all(familyBookings.map(async (booking) => {
+    const bookingsToEnrich = familyId 
+      ? allBookings.filter(b => b.familyId === familyId)
+      : allBookings;
+    const enrichedBookings = await Promise.all(bookingsToEnrich.map(async (booking) => {
         const session = new SessionEntity(c.env, booking.sessionId);
         const family = new FamilyEntity(c.env, booking.familyId);
-        const sessionData = await session.getState();
-        const familyData = await family.getState();
-        const childData = familyData.children.find(c => c.id === booking.childId);
+        const sessionData = await session.getState().catch(() => null);
+        const familyData = await family.getState().catch(() => null);
+        const childData = familyData?.children.find(c => c.id === booking.childId);
         return { ...booking, session: sessionData, child: childData };
     }));
-    return ok(c, enrichedBookings);
+    return ok(c, enrichedBookings.filter(b => b.session && b.child));
   });
   app.post('/api/bookings', async (c) => {
     const { sessionId, familyId, childId, notes } = await c.req.json<{ sessionId: string, familyId: string, childId: string, notes?: string }>();
@@ -95,6 +95,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       status: 'pending',
       approvalToken: crypto.randomUUID(),
       createdTs: Date.now(),
+      expiryTs: Date.now() + 86400000, // Token expires in 24 hours
       notes,
     };
     await BookingEntity.create(c.env, newBooking);
@@ -109,12 +110,17 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const booking = await bookingEntity.getState();
     if (booking.approvalToken !== token) return bad(c, 'Invalid approval token');
     if (booking.status !== 'pending') return bad(c, 'Booking is not pending approval');
+    if (booking.expiryTs && Date.now() > booking.expiryTs) return bad(c, 'Approval token has expired');
     await bookingEntity.patch({ status: 'confirmed' });
     return ok(c, { ...booking, status: 'confirmed' });
   });
   app.delete('/api/bookings/:id', async (c) => {
     const bookingId = c.req.param('id');
-    // In a real app, you'd check for admin privileges here
+    const isAdmin = c.req.query('admin') === '1';
+    // Mock admin check
+    if (!isAdmin) {
+        return c.json({ success: false, error: 'Unauthorized' }, 403);
+    }
     const deleted = await BookingEntity.delete(c.env, bookingId);
     if (!deleted) return notFound(c, 'Booking not found');
     return ok(c, { id: bookingId, deleted: true });

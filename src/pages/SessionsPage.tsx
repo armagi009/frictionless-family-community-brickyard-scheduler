@@ -11,8 +11,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, ToyBrick } from 'lucide-react';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
+import { useDebounce } from 'react-use';
 const ALL_TAGS = ['creative free-build', 'vehicles', 'space', 'rockets', 'workshop', 'castles', 'knights', 'adults', 'architecture', 'relax', 'minifigures'];
 export function SessionsPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -23,6 +26,8 @@ export function SessionsPage() {
   const selectChild = useFamilyStore(s => s.selectChild);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  useDebounce(() => setDebouncedSearchTerm(searchTerm), 300, [searchTerm]);
   const selectedChild = useMemo(() => {
     return family?.children.find((c: Child) => c.id === selectedChildId);
   }, [family, selectedChildId]);
@@ -49,7 +54,7 @@ export function SessionsPage() {
         if (selectedTags.size > 0 && !Array.from(selectedTags).every(tag => session.tags.includes(tag))) {
           return false;
         }
-        if (searchTerm && !session.title.toLowerCase().includes(searchTerm.toLowerCase())) {
+        if (debouncedSearchTerm && !session.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) {
           return false;
         }
         return true;
@@ -62,7 +67,7 @@ export function SessionsPage() {
         return { ...session, score };
       })
       .sort((a, b) => b.score - a.score);
-  }, [sessions, selectedChild, selectedTags, searchTerm]);
+  }, [sessions, selectedChild, selectedTags, debouncedSearchTerm]);
   const handleBook = (session: Session) => {
     if (!family) {
       toast.info('Please set up your family profile first.');
@@ -79,13 +84,14 @@ export function SessionsPage() {
             <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
               Browse upcoming workshops and free-play sessions. Filter by child to see what's available for them.
             </p>
+            <Button asChild variant="outline" className="mt-4">
+              <Link to="/approvals">View My Bookings</Link>
+            </Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <aside className="md:col-span-1">
               <Card className="sticky top-24">
-                <CardHeader>
-                  <CardTitle>Filters</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle>Filters</CardTitle></CardHeader>
                 <CardContent className="space-y-6">
                   <div>
                     <Label className="font-semibold">Child Profile</Label>
@@ -107,7 +113,7 @@ export function SessionsPage() {
                   </div>
                   <div>
                     <Label className="font-semibold">Interest Tags</Label>
-                    <div className="space-y-2 mt-2 max-h-60 overflow-y-auto pr-2">
+                    <div className="space-y-2 mt-2 max-h-60 overflow-y-auto pr-2 scrollbar-thin">
                       {ALL_TAGS.map(tag => (
                         <div key={tag} className="flex items-center space-x-2">
                           <Checkbox id={tag} checked={selectedTags.has(tag)} onCheckedChange={(checked) => handleTagChange(tag, !!checked)} />
@@ -123,7 +129,7 @@ export function SessionsPage() {
               {isLoading ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {[...Array(4)].map((_, i) => (
-                    <div key={i} className="space-y-3"><Skeleton className="h-[250px] w-full rounded-xl" /></div>
+                    <div key={i} className="space-y-3"><Skeleton className="h-[320px] w-full rounded-2xl" /></div>
                   ))}
                 </div>
               ) : (
@@ -133,8 +139,10 @@ export function SessionsPage() {
                       <SessionCard key={session.id} session={session} onBook={handleBook} score={session.score} maxScore={selectedChild?.interestTags.length} />
                     ))
                   ) : (
-                    <div className="lg:col-span-2 text-center py-16">
-                      <p className="text-muted-foreground">No sessions match your filters.</p>
+                    <div className="lg:col-span-2 text-center py-16 flex flex-col items-center justify-center bg-muted rounded-2xl">
+                      <ToyBrick className="w-16 h-16 text-muted-foreground/30 mb-4" />
+                      <p className="text-lg font-medium text-muted-foreground">No sessions found.</p>
+                      <p className="text-sm text-muted-foreground">Try adjusting filters or check back later!</p>
                     </div>
                   )}
                 </div>
