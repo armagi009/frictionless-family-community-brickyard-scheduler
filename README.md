@@ -1,6 +1,6 @@
 # Frictionless Family — Community Brickyard Scheduler
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/armagi009/frictionless-family-community-brickyard-scheduler)
 
 ## Overview
 
@@ -139,7 +139,7 @@ Deploy to Cloudflare Workers for global edge execution with Durable Object stora
 
 For CI/CD, integrate with GitHub Actions using Wrangler actions.
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/armagi009/frictionless-family-community-brickyard-scheduler)
 
 ### Custom Domain
 
