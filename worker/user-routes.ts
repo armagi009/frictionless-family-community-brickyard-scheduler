@@ -1,75 +1,113 @@
 import { Hono } from "hono";
 import type { Env } from './core-utils';
-import { UserEntity, ChatBoardEntity } from "./entities";
+import { SessionEntity, FamilyEntity, BookingEntity, LegoSetEntity } from "./entities";
 import { ok, bad, notFound, isStr } from './core-utils';
-
+import { generateIcsContent } from '../src/lib/ics';
+import type { Booking, Session, Family, Child } from '@shared/types';
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
-  app.get('/api/test', (c) => c.json({ success: true, data: { name: 'CF Workers Demo' }}));
-
-  // USERS
-  app.get('/api/users', async (c) => {
-    await UserEntity.ensureSeed(c.env);
-    const cq = c.req.query('cursor');
-    const lq = c.req.query('limit');
-    const page = await UserEntity.list(c.env, cq ?? null, lq ? Math.max(1, (Number(lq) | 0)) : undefined);
-    return ok(c, page);
+  // Ensure all data is seeded on first load
+  app.use('/api/*', async (c, next) => {
+    await Promise.all([
+      SessionEntity.ensureSeed(c.env),
+      FamilyEntity.ensureSeed(c.env),
+      BookingEntity.ensureSeed(c.env),
+      LegoSetEntity.ensureSeed(c.env),
+    ]);
+    await next();
   });
-
-  app.post('/api/users', async (c) => {
-    const { name } = (await c.req.json()) as { name?: string };
-    if (!name?.trim()) return bad(c, 'name required');
-    return ok(c, await UserEntity.create(c.env, { id: crypto.randomUUID(), name: name.trim() }));
+  // SESSIONS
+  app.get('/api/sessions', async (c) => {
+    const { items } = await SessionEntity.list(c.env);
+    return ok(c, items.sort((a, b) => a.startTs - b.startTs));
   });
-
-  // CHATS
-  app.get('/api/chats', async (c) => {
-    await ChatBoardEntity.ensureSeed(c.env);
-    const cq = c.req.query('cursor');
-    const lq = c.req.query('limit');
-    const page = await ChatBoardEntity.list(c.env, cq ?? null, lq ? Math.max(1, (Number(lq) | 0)) : undefined);
-    return ok(c, page);
+  // FAMILIES
+  app.get('/api/families/:id', async (c) => {
+    const family = new FamilyEntity(c.env, c.req.param('id'));
+    if (!await family.exists()) return notFound(c, 'family not found');
+    return ok(c, await family.getState());
   });
-
-  app.post('/api/chats', async (c) => {
-    const { title } = (await c.req.json()) as { title?: string };
-    if (!title?.trim()) return bad(c, 'title required');
-    const created = await ChatBoardEntity.create(c.env, { id: crypto.randomUUID(), title: title.trim(), messages: [] });
-    return ok(c, { id: created.id, title: created.title });
+  app.post('/api/families', async (c) => {
+    const body = await c.req.json<Partial<Family>>();
+    if (!body.name || !body.parentName || !body.parentEmail || !body.children) {
+      return bad(c, 'Missing required family data');
+    }
+    const newFamily: Family = {
+      id: body.id || crypto.randomUUID(),
+      name: body.name,
+      parentName: body.parentName,
+      parentEmail: body.parentEmail,
+      children: body.children,
+    };
+    await FamilyEntity.create(c.env, newFamily);
+    return ok(c, newFamily);
   });
-
-  // MESSAGES
-  app.get('/api/chats/:chatId/messages', async (c) => {
-    const chat = new ChatBoardEntity(c.env, c.req.param('chatId'));
-    if (!await chat.exists()) return notFound(c, 'chat not found');
-    return ok(c, await chat.listMessages());
+  // BOOKINGS
+  app.get('/api/bookings', async (c) => {
+    const familyId = c.req.query('familyId');
+    if (!familyId) return bad(c, 'familyId is required');
+    const { items: allBookings } = await BookingEntity.list(c.env);
+    const familyBookings = allBookings.filter(b => b.familyId === familyId);
+    // Enrich with session and child info
+    const enrichedBookings = await Promise.all(familyBookings.map(async (booking) => {
+        const session = new SessionEntity(c.env, booking.sessionId);
+        const family = new FamilyEntity(c.env, booking.familyId);
+        const sessionData = await session.getState();
+        const familyData = await family.getState();
+        const childData = familyData.children.find(c => c.id === booking.childId);
+        return { ...booking, session: sessionData, child: childData };
+    }));
+    return ok(c, enrichedBookings);
   });
-
-  app.post('/api/chats/:chatId/messages', async (c) => {
-    const chatId = c.req.param('chatId');
-    const { userId, text } = (await c.req.json()) as { userId?: string; text?: string };
-    if (!isStr(userId) || !text?.trim()) return bad(c, 'userId and text required');
-    const chat = new ChatBoardEntity(c.env, chatId);
-    if (!await chat.exists()) return notFound(c, 'chat not found');
-    return ok(c, await chat.sendMessage(userId, text.trim()));
+  app.post('/api/bookings', async (c) => {
+    const { sessionId, familyId, childId, notes } = await c.req.json<{ sessionId: string, familyId: string, childId: string, notes?: string }>();
+    if (!sessionId || !familyId || !childId) return bad(c, 'sessionId, familyId, and childId are required');
+    const newBooking: Booking = {
+      id: `book_${crypto.randomUUID()}`,
+      sessionId,
+      familyId,
+      childId,
+      status: 'pending',
+      approvalToken: crypto.randomUUID(),
+      createdTs: Date.now(),
+      notes,
+    };
+    await BookingEntity.create(c.env, newBooking);
+    return ok(c, newBooking);
   });
-
-  // DELETE: Users
-  app.delete('/api/users/:id', async (c) => ok(c, { id: c.req.param('id'), deleted: await UserEntity.delete(c.env, c.req.param('id')) }));
-
-  app.post('/api/users/deleteMany', async (c) => {
-    const { ids } = (await c.req.json()) as { ids?: string[] };
-    const list = ids?.filter(isStr) ?? [];
-    if (list.length === 0) return bad(c, 'ids required');
-    return ok(c, { deletedCount: await UserEntity.deleteMany(c.env, list), ids: list });
+  app.post('/api/bookings/:id/approve', async (c) => {
+    const bookingId = c.req.param('id');
+    const token = c.req.query('token');
+    if (!token) return bad(c, 'Approval token is required');
+    const bookingEntity = new BookingEntity(c.env, bookingId);
+    if (!await bookingEntity.exists()) return notFound(c, 'Booking not found');
+    const booking = await bookingEntity.getState();
+    if (booking.approvalToken !== token) return bad(c, 'Invalid approval token');
+    if (booking.status !== 'pending') return bad(c, 'Booking is not pending approval');
+    await bookingEntity.patch({ status: 'confirmed' });
+    return ok(c, { ...booking, status: 'confirmed' });
   });
-
-  // DELETE: Chats
-  app.delete('/api/chats/:id', async (c) => ok(c, { id: c.req.param('id'), deleted: await ChatBoardEntity.delete(c.env, c.req.param('id')) }));
-
-  app.post('/api/chats/deleteMany', async (c) => {
-    const { ids } = (await c.req.json()) as { ids?: string[] };
-    const list = ids?.filter(isStr) ?? [];
-    if (list.length === 0) return bad(c, 'ids required');
-    return ok(c, { deletedCount: await ChatBoardEntity.deleteMany(c.env, list), ids: list });
+  // .ICS Download
+  app.get('/api/bookings/:id/ics', async (c) => {
+    const bookingId = c.req.param('id');
+    const bookingEntity = new BookingEntity(c.env, bookingId);
+    if (!await bookingEntity.exists()) return notFound(c, 'Booking not found');
+    const booking = await bookingEntity.getState();
+    if (booking.status !== 'confirmed') return bad(c, 'Booking not confirmed');
+    const sessionEntity = new SessionEntity(c.env, booking.sessionId);
+    const familyEntity = new FamilyEntity(c.env, booking.familyId);
+    if (!await sessionEntity.exists() || !await familyEntity.exists()) {
+      return notFound(c, 'Session or Family not found');
+    }
+    const session = await sessionEntity.getState();
+    const family = await familyEntity.getState();
+    const child = family.children.find(ch => ch.id === booking.childId);
+    if (!child) return notFound(c, 'Child not found in family');
+    const icsContent = generateIcsContent(booking, session, family, child);
+    return new Response(icsContent, {
+      headers: {
+        'Content-Type': 'text/calendar; charset=utf-8',
+        'Content-Disposition': `attachment; filename="booking-${booking.id}.ics"`,
+      },
+    });
   });
 }

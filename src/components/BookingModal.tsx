@@ -35,12 +35,9 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
         }),
       });
       toast.success('Booking requested!', {
-        description: 'Check the Approvals page for parent review.',
+        description: 'Awaiting parent approval.',
       });
       onClose();
-      // Reset form state for next time
-      setMessage('');
-      setSelectedChildId(family?.children[0]?.id);
     } catch (error) {
       toast.error('Failed to request booking.', {
         description: error instanceof Error ? error.message : 'Please try again.',
@@ -89,12 +86,11 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
               onChange={(e) => setMessage(e.target.value)}
             />
           </div>
-          {!selectedChildId && <p className="col-span-4 text-center text-sm text-destructive">Please select a child to continue.</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
-          <Button
-            onClick={handleSubmit}
+          <Button 
+            onClick={handleSubmit} 
             disabled={!selectedChildId || isSubmitting}
             className="bg-[#E53935] hover:bg-[#D32F2F] text-white"
           >

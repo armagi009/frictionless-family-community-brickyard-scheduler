@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Calendar, Clock, Users, Tag, Info, Sparkles, Star } from 'lucide-react';
+import { Calendar, Clock, Users, Tag, Info, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,10 +8,8 @@ import type { Session } from '@shared/types';
 interface SessionCardProps {
   session: Session;
   onBook: (session: Session) => void;
-  score?: number;
-  maxScore?: number;
 }
-export function SessionCard({ session, onBook, score, maxScore }: SessionCardProps) {
+export function SessionCard({ session, onBook }: SessionCardProps) {
   const sessionTypeColors = {
     'free-play': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
     'workshop': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
@@ -20,26 +18,17 @@ export function SessionCard({ session, onBook, score, maxScore }: SessionCardPro
   return (
     <motion.div
       whileHover={{ y: -5, scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 300 }}
     >
       <Card className="overflow-hidden rounded-2xl shadow-soft hover:shadow-lg transition-shadow duration-300 h-full flex flex-col">
         <CardHeader>
-          <div className="flex justify-between items-start gap-2">
+          <div className="flex justify-between items-start">
             <CardTitle className="text-xl font-bold font-display tracking-tight text-foreground pr-2">
               {session.title}
             </CardTitle>
-            <div className="flex flex-col items-end gap-2 flex-shrink-0">
-              <Badge className={`whitespace-nowrap ${sessionTypeColors[session.type]}`}>
-                {session.type.replace('-', ' ')}
-              </Badge>
-              {score && score > 0 && maxScore ? (
-                <Badge variant="secondary" className="bg-green-100 text-green-800">
-                  <Star className="w-3 h-3 mr-1" />
-                  Recommended ({score}/{maxScore})
-                </Badge>
-              ) : null}
-            </div>
+            <Badge className={`whitespace-nowrap ${sessionTypeColors[session.type]}`}>
+              {session.type.replace('-', ' ')}
+            </Badge>
           </div>
           <div className="text-sm text-muted-foreground flex items-center pt-1">
             <Users className="w-4 h-4 mr-2" />

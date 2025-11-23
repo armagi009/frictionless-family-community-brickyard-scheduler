@@ -1,15 +1,110 @@
-import type { User, Chat, ChatMessage } from './types';
-
-export const MOCK_USERS: User[] = [
-  { id: 'u1', name: 'User A' },
-  { id: 'u2', name: 'User B' }
+import type { Session, Family, Booking, LegoSet } from './types';
+import { addDays, setHours, setMinutes } from 'date-fns';
+const now = new Date();
+export const MOCK_SESSIONS: Session[] = [
+  {
+    id: 'ses_1',
+    title: 'Creative Free-Build Morning',
+    startTs: setMinutes(setHours(addDays(now, 2), 10), 0).getTime(),
+    endTs: setMinutes(setHours(addDays(now, 2), 12), 0).getTime(),
+    ageMin: 5,
+    ageMax: 12,
+    tags: ['creative free-build', 'vehicles'],
+    type: 'free-play',
+    location: 'Main Build Area',
+    capacity: 20,
+    notes: 'Dive into our bins of unsorted bricks and let your imagination run wild!',
+  },
+  {
+    id: 'ses_2',
+    title: 'Space Explorers Workshop',
+    startTs: setMinutes(setHours(addDays(now, 5), 14), 0).getTime(),
+    endTs: setMinutes(setHours(addDays(now, 5), 16), 0).getTime(),
+    ageMin: 8,
+    ageMax: 14,
+    tags: ['space', 'rockets', 'workshop'],
+    type: 'workshop',
+    location: 'Workshop Zone',
+    capacity: 12,
+    notes: 'Build your own rocket and lunar rover. All parts provided.',
+  },
+  {
+    id: 'ses_3',
+    title: 'Castle Siege Afternoon',
+    startTs: setMinutes(setHours(addDays(now, 7), 13), 30).getTime(),
+    endTs: setMinutes(setHours(addDays(now, 7), 15), 30).getTime(),
+    ageMin: 7,
+    ageMax: 12,
+    tags: ['castles', 'knights', 'creative free-build'],
+    type: 'free-play',
+    location: 'Main Build Area',
+    capacity: 15,
+    notes: 'Construct a mighty fortress or lay siege to one! Pre-built castle parts available.',
+  },
+  {
+    id: 'ses_4',
+    title: 'Adults-Only Build Night',
+    startTs: setMinutes(setHours(addDays(now, 9), 19), 0).getTime(),
+    endTs: setMinutes(setHours(addDays(now, 9), 21), 0).getTime(),
+    ageMin: 18,
+    ageMax: 99,
+    tags: ['adults', 'architecture', 'relax'],
+    type: 'adult-night',
+    location: 'The Community Brickyard',
+    capacity: 25,
+    notes: 'A relaxed, child-free evening to tackle complex sets or just build peacefully. BYOB.',
+  },
+  {
+    id: 'ses_5',
+    title: 'Minifigure Madness',
+    startTs: setMinutes(setHours(addDays(now, 12), 11), 0).getTime(),
+    endTs: setMinutes(setHours(addDays(now, 12), 12), 0).getTime(),
+    ageMin: 4,
+    ageMax: 8,
+    tags: ['minifigures', 'creative free-build'],
+    type: 'free-play',
+    location: 'Minifig Station',
+    capacity: 10,
+    notes: 'Create your own wacky characters at our minifigure building station.',
+  },
 ];
-
-export const MOCK_CHATS: Chat[] = [
-  { id: 'c1', title: 'General' },
+export const MOCK_FAMILIES: Family[] = [
+  {
+    id: 'fam_1',
+    name: 'The Builder Family',
+    parentName: 'Alex Builder',
+    parentEmail: 'alex@example.com',
+    children: [
+      { id: 'child_1', name: 'Leo', age: 8, interestTags: ['space', 'vehicles'] },
+      { id: 'child_2', name: 'Mia', age: 6, interestTags: ['castles', 'creative free-build'] },
+    ],
+  },
 ];
-
-export const MOCK_CHAT_MESSAGES: ChatMessage[] = [
-  { id: 'm1', chatId: 'c1', userId: 'u1', text: 'Hello', ts: Date.now() },
+export const MOCK_BOOKINGS: Booking[] = [
+  {
+    id: 'book_1',
+    sessionId: 'ses_2',
+    familyId: 'fam_1',
+    childId: 'child_1',
+    status: 'pending',
+    approvalToken: 'demo-token-123',
+    createdTs: Date.now(),
+    notes: 'Leo is very excited for this!',
+  },
+  {
+    id: 'book_2',
+    sessionId: 'ses_3',
+    familyId: 'fam_1',
+    childId: 'child_2',
+    status: 'confirmed',
+    approvalToken: 'used-token-456',
+    createdTs: Date.now() - 86400000,
+  },
 ];
-  
+export const MOCK_SETS: LegoSet[] = [
+    { id: '10281', title: 'Bonsai Tree', shelf: 'Ready for Play', pieceCount: 878, instructionsUrl: '#' },
+    { id: '21325', title: 'Medieval Blacksmith', shelf: 'Ready for Play', pieceCount: 2164, instructionsUrl: '#' },
+    { id: '75313', title: 'AT-AT', shelf: 'Works in Progress', pieceCount: 6785, instructionsUrl: '#' },
+    { id: '42115', title: 'Lamborghini Sián', shelf: 'Ready for Parts', pieceCount: 3696, instructionsUrl: '#' },
+    { id: '10294', title: 'Titanic', shelf: 'Ready for Play', pieceCount: 9090, instructionsUrl: '#' },
+];
