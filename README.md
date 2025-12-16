@@ -167,3 +167,36 @@ Report issues for bugs or feature requests. Ensure code adheres to TypeScript st
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Installation
+
+```bash
+git clone https://github.com/armagi009/frictionless-family-community-brickyard-scheduler.git
+cd frictionless-family-community-brickyard-scheduler
+npm install
+```
+
+## Usage
+
+This project provides [describe main functionality here].
+
+### Quick Start
+
+```bash
+npm start
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+*Enhanced by DevAgent on 12/16/2025*
